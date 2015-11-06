@@ -1,0 +1,10 @@
+<template name="projectList">
+  <h5>Projects</h5>
+  <div class="project-container container">
+    <ul class="collection">
+      {{#each projects}}
+        {{> projectItem}}
+      {{/each}}
+    </ul>
+  </div>
+</template>

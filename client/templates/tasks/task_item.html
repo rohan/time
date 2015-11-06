@@ -1,0 +1,39 @@
+<template name="taskItem">
+  <div class="col m4" id="task-item-{{_id}}">
+    <div class="card hoverable">
+      <div class="card-content">
+        <table cellpadding="0" cellspacing="0">
+          <tr class="title-tr">
+            <td><i class="drag-handle tiny material-icons">reorder</i></td>
+            <td class="title-td"><span class="card-title black-text truncate"> {{name}}</span>
+            {{length}} hours long</td>
+          </tr>
+        </table>
+        <table>
+          <thead>
+            <tr>
+              <th data-field="due">Due Date</th>
+              <th data-field="sched">Scheduled</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="date-td {{#if pastDue}} red-text text-lighten-1 {{/if}}">{{dateFmt}}</td>
+              {{#if schedDate}}
+                <td>{{schedDate}}</td>
+              {{else}}
+                <td><em>Not yet scheduled</em></td>
+              {{/if}}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-action">
+        <a href="#" id="done-button" class="action-button grey-text"><i class="material-icons">done</i></a>
+        <a href="#" id="sched-button" class="action-button grey-text"><i class="material-icons">schedule</i></a>
+        <a href="#" id="del-button" class="action-button grey-text"><i class="material-icons">delete</i></a>
+      </div>
+    </div>
+  </div>
+  {{> editTask}}
+</template> 

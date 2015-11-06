@@ -1,0 +1,30 @@
+<template name="editTask">
+  <div class="col m4" id="edit-task-{{_id}}" style="display: none;">
+    <div class="card hoverable">
+      <form id="edit-form">
+        <div class="card-content">
+          <input class="card-title black-text" id="task-edit-name-{{_id}}" type="text" value="{{name}}">
+          <table>
+            <thead>
+              <tr>
+                <th data-field="due" style="width: 50%;">Due Date</th>
+                <th data-field="sched">Scheduled</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input id="task-edit-due-date-{{_id}}" type="date" class="datepicker" data-value="{{dateFmt}}"></td>
+                <td>foobar</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-action">
+          <button class="btn waves-effect waves-light" type="submit" name="action">Submit
+            <i class="material-icons right">send</i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template> 

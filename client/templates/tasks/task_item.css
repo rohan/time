@@ -1,0 +1,12 @@
+.title-tr td {
+  padding: 0px;
+}
+
+.title-td {
+  width: 100%;
+  padding-left: 10px!important;
+}
+
+.action-button:hover {
+  color: black!important;
+}

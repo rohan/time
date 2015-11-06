@@ -1,0 +1,36 @@
+<template name="newTaskForm">
+  <div class="col m4" id="new-task-form" style="display: none;">
+    <div class="card grey lighten-3">
+      <form id="new-task">
+        <div class="card-content">
+          <span class="card-title black-text">New Task</span>
+          <div class="row">
+            <div class="col s12">
+              <div class="row">
+                <div class="input-field col s12">
+                  <input id="task-create-name" type="text" class="validate">
+                  <label for="task-create-name" class="active">Title</label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-field col s12 m6">
+                  <input id="task-create-due-date" type="date" class="datepicker">
+                  <label for="task-create-due-date" class="active">Due Date</label>
+                </div>
+                <div class="input-field col s12 m6">
+                  <input id="task-create-length" type="number">
+                  <label for="task-create-length" class="active">Length</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-action">
+          <button class="btn waves-effect waves-light" type="submit" name="action">Submit
+            <i class="material-icons right">send</i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
