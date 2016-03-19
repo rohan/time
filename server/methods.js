@@ -6,9 +6,19 @@ Meteor.methods({
   // takes a task ID, returns the date it should be scheduled
   // returns null if no date found
   // returns the date if date found
-  taskSchedule: function(taskId) {
+  taskSchedule: function(taskId, reschedule) {
     var task = Tasks.findOne(taskId);
     var now = moment();
+
+    if (reschedule) {
+      var scheduledDate = task.scheduledDate;
+      if (scheduledDate !== undefined) {
+        now = moment(scheduledDate).add(task.length, 'h');
+      }
+    }
+
+    log("starting search at " + now.format());
+
     var due = moment(task.date);
     var events = [];
 
@@ -52,7 +62,7 @@ Meteor.methods({
         var e = ev[j];
         if (e.start == undefined || e.end == undefined) {
           // these are full day events, I think
-          log(e.summary);
+          log("detected suspected full-day event: " + e.summary);
           break; // don't worry about them
         } else if (e.start.dateTime == undefined || e.end.dateTime == undefined) {
           break;
@@ -63,19 +73,51 @@ Meteor.methods({
       }
     }
 
+    // add bedtimes
+    var bedtime_start = moment(now).hour(0).minute(0).second(0);
+    var bedtime_end = moment(bedtime_start).add(8, 'h');
+
+    if (now.isBetween(bedtime_start, bedtime_end)) {
+      // it's bedtime now, do nothing
+    } else {
+      if (now.isAfter(bedtime_start)) {
+        // increase everything by a day
+        bedtime_start.add(1, 'd');
+        bedtime_end.add(1, 'd');
+      }
+    }
+
+    var bedtime_event = {
+      start: bedtime_start,
+      end: bedtime_end,
+      name: "__BEDTIME__"
+    };
+
+    while (due.isBefore(bedtime_event.start)) {
+      // add bedtime blocks for every day between now and when the event is due
+      events.push(bedtime_event);
+      bedtime_event.start.add(1, 'd');
+      bedtime_event.end.add(1, 'd');
+    }
+
+    if (due.isBetween(bedtime_event.start, bedtime_event.end)) {
+      // if it's due during bedtime, make this the last one
+      bedtime_event.name = "__END__"
+      events.push(bedtime_event);
+    } else {
+      // otherwise, add a new event to represent the due time
+      events.push({ start : due,
+        end : due.add(1, 'm'),
+        name : "__END__"
+      });
+    }
+
     // sort increasing in time across all calendars
-    // TODO: optimize to sort on insert
     events.sort(function(a,b) {
       return a.start - b.start;
     });
 
-    // add a new event to represent the last time
-    events.push({ start : due,
-      end : due.getTime() + 1000*60,
-      name : "__END__"
-    });
-
-    // map gap length to event end date
+    // map gap length to event end dates, sorted by earliest
     var gaps_list = {};
 
     var length = events.length;
@@ -83,6 +125,7 @@ Meteor.methods({
       var gap = events[i].start - events[i-1].end;
       if (gap <= 0) continue; // if the events overlap
       gap /= 1000*60; // convert to minutes
+      gap = Math.floor(gap); // round down
       if (!(gap in gaps_list)) {
         gaps_list[gap] = [];
       }
@@ -90,33 +133,40 @@ Meteor.methods({
       gaps_list[gap].push(events[i-1].end);
     }
 
-    var index = Infinity;
+    var smallest_gap = Infinity;
     console.log(gaps_list);
 
-    for (var key in gaps_list) {
-      if (gaps_list.hasOwnProperty(key)) {
-        console.log(key + " " + task.length + " " + index);
-        if (parseInt(key) >= task.length && parseInt(key) < index) {
-          index = parseInt(key);
-          console.log(index);
+    // search the map
+    for (var gap_size in gaps_list) {
+      if (gaps_list.hasOwnProperty(gap_size)) {
+        console.log(gap_size + " " + task.length + " " + smallest_gap);
+        // if the task fits in the gap and is smaller than previous gap size
+        if (parseInt(gap_size) >= task.length && parseInt(gap_size) < smallest_gap) {
+          smallest_gap = parseInt(gap_size);
+          console.log("updated smallest gap size to " + smallest_gap);
         }
       }
     }
-    // index should be the shortest gap start time
-    if (index == Infinity && Object.size(gaps_list) != 0) { // if it can't find a gap big enough AND there are gaps
-      // this gets here if gaps_list is empty
+
+    log("size of gap list: " + Object.size(gaps_list));
+
+    if (smallest_gap == Infinity && Object.size(gaps_list) != 0) { // if it can't find a gap big enough AND there are gaps
       return task.date; // no time found
     }
 
     var round_minutes = 15;
     var time;
-    if (index == Infinity && Object.size(gaps_list) == 0) {
-      time = new Date(Math.ceil(nowDate.getTime() / (round_minutes*60*1000)) * (round_minutes*60*1000));
+    if (smallest_gap == Infinity && Object.size(gaps_list) == 0) {
+      // no gaps == no events between now and due date, schedule ASAP
+      time = now;
     } else {
-      var times = gaps_list[index];
+      // find the earliest event with smallest_gap free minutes after it
+      var times = gaps_list[smallest_gap];
       time = times[0];
     }
-    console.log(task.length + " " + index + " " + time);
+
+    // round time to nearest round_minutes-increment
+    time.minute(Math.ceil(time.minute() / round_minutes) * round_minutes);
 
     if (taskless_calendar_id === null) { // if the taskless calendar doesn't exist, create it
       console.log("getting cal id");
@@ -125,11 +175,11 @@ Meteor.methods({
     }
 
     request_url = "/calendar/v3/calendars/" + taskless_calendar_id + "/events";
-    var end = new Date(time.getTime() + task.length * 60 * 1000);
+    var end = moment(time).add(task.length, 'h');
     
     var result = GoogleApi.post(request_url, {
       data : { 
-        summary : task.title, 
+        summary : task.name, 
         start : { dateTime : time.toISOString() }, 
         end: { dateTime: end.toISOString() } 
       }
@@ -139,6 +189,12 @@ Meteor.methods({
     var out = Date.create(result.start.dateTime);
     Tasks.update(taskId, {$set : {scheduledDate : out, calendarId: final_id }});
     return out;
+  },
+
+  taskDelete: function (taskId) {
+    var id = Tasks.findOne(taskId).calendarId;
+    var taskless_calendar_id = Calendars.findOne({summary : "Taskless"}).id;
+    var result = GoogleApi.delete("/calendar/v3/calendars/" + taskless_calendar_id + "/events/" + id);
   },
 
   updateCalendars: function() {
@@ -156,7 +212,7 @@ Meteor.methods({
         summary : calendars[i].summary,
         id : calendars[i].id,
         userId : Meteor.user()._id,
-        submitted : new Date(),
+        submitted : now,
         checked : true,
       }
 

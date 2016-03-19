@@ -1,7 +1,14 @@
 <template name="header">
-  <nav class="green darken-2">
-    <div class="navbar-wrapper">
-      <a class="brand-logo center">Taskless</a>
-    </div>
-  </nav>
+  <!-- <div class="navbar-fixed"> -->
+    <nav class="red darken-2">
+      <div class="container">
+        <div class="nav-wrapper">
+          <a class="brand-logo title" href="/">taskless</a>
+          <ul id="nav-mobile" class="right hide-on-med-and-down">
+            <li>{{> loginButton}}</li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  <!-- </div> -->
 </template>

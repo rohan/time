@@ -1,4 +1,4 @@
-Template.welcome.events({
+Template.loginButton.events({
   "click #login-google": function (e) {
     console.log("let's get logged in");
 
@@ -14,6 +14,16 @@ Template.welcome.events({
         console.log(err.reason || "unknown error");
       }
       console.log(Meteor.user().services.google.accessToken); // access token for REST API
+    });
+  },
+
+  "click #logout": function (e) {
+    console.log("let's get logged out");
+
+    Meteor.logout(function (err) {
+      if (err) {
+        console.log(err.reason || "unknown error");
+      }
     });
   },
 })

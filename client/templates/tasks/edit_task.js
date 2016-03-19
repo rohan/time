@@ -11,6 +11,13 @@ Template.editTask.rendered = function () {
     selectYears: 15, // Creates a dropdown of 15 years to control year
     formatSubmit: 'yyyy/mm/dd',
   });
+
+  $('#textArea.editable').editable({
+    success: function(response, newValue) {
+      console.log(response);
+      console.log(newValue);
+    }
+  });
 }
 
 Template.editTask.events({
